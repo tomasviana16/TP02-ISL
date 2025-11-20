@@ -62,6 +62,10 @@ reg [3:0] d1;                          // Dígito das dezenas
 reg [3:0] d2;                          // Dígito das centenas
 reg [3:0] d3;                          // Dígito dos milhares
 
+// Variáveis internas para cálculos BCD usando atribuições bloqueantes
+reg [3:0] temp_d0, temp_d1, temp_d2;
+reg carry_d0_to_d1, carry_d1_to_d2, carry_d2_to_d3;
+
 // Lógica sequencial (Acumulação do total)
 always @(posedge clk) begin
 
@@ -73,10 +77,6 @@ always @(posedge clk) begin
         antigoReady <= 0;
     end
     else begin
-
-        // Variáveis internas para cálculos BCD usando atribuições bloqueantes
-        reg [3:0] temp_d0, temp_d1, temp_d2;
-        reg carry_d0_to_d1, carry_d1_to_d2, carry_d2_to_d3;
         
         // Inicializa as variáveis temporárias
         temp_d0 = d0;
