@@ -1,0 +1,279 @@
+$date
+	Wed Nov 26 19:03:01 2025
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ns
+$end
+$scope module tb_pedagio $end
+$var wire 7 ! HEX7 [6:0] $end
+$var wire 7 " HEX6 [6:0] $end
+$var wire 7 # HEX5 [6:0] $end
+$var wire 7 $ HEX4 [6:0] $end
+$var wire 7 % HEX3 [6:0] $end
+$var wire 7 & HEX2 [6:0] $end
+$var wire 7 ' HEX1 [6:0] $end
+$var wire 7 ( HEX0 [6:0] $end
+$var reg 4 ) KEY [3:0] $end
+$var reg 18 * SW [17:0] $end
+$scope module DUT $end
+$var wire 36 + GPIO [35:0] $end
+$var wire 7 , HEX6 [6:0] $end
+$var wire 7 - HEX7 [6:0] $end
+$var wire 4 . KEY [3:0] $end
+$var wire 9 / LEDG [8:0] $end
+$var wire 18 0 LEDR [17:0] $end
+$var wire 18 1 SW [17:0] $end
+$var wire 4 2 peso [3:0] $end
+$var wire 2 3 eixos [1:0] $end
+$var wire 7 4 HEX5 [6:0] $end
+$var wire 7 5 HEX4 [6:0] $end
+$var wire 7 6 HEX3 [6:0] $end
+$var wire 7 7 HEX2 [6:0] $end
+$var wire 7 8 HEX1 [6:0] $end
+$var wire 7 9 HEX0 [6:0] $end
+$var reg 1 : c1 $end
+$var reg 1 ; c2 $end
+$var reg 1 < c3 $end
+$var reg 7 = cat [6:0] $end
+$var reg 4 > d0 [3:0] $end
+$var reg 4 ? d1 [3:0] $end
+$var reg 4 @ d2 [3:0] $end
+$var reg 4 A d3 [3:0] $end
+$var reg 4 B t0 [3:0] $end
+$var reg 4 C t1 [3:0] $end
+$var reg 4 D t2 [3:0] $end
+$var reg 4 E t3 [3:0] $end
+$var reg 4 F v0 [3:0] $end
+$var reg 4 G v1 [3:0] $end
+$var reg 8 H valor [7:0] $end
+$var integer 32 I x [31:0] $end
+$scope function seg7 $end
+$var reg 4 J n [3:0] $end
+$upscope $end
+$upscope $end
+$scope task pulse_key0 $end
+$upscope $end
+$scope task reset_total $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+$comment Show the parameter values. $end
+$dumpall
+$end
+#0
+$dumpvars
+b1 J
+bx I
+b1010 H
+b1 G
+b0 F
+bx E
+bx D
+bx C
+bx B
+b0 A
+b0 @
+b0 ?
+b0 >
+b1111001 =
+x<
+x;
+x:
+b1000000 9
+b1000000 8
+b1000000 7
+b1000000 6
+b1000000 5
+b1111001 4
+b0 3
+b0 2
+b0 1
+bz 0
+bz /
+b0 .
+b1111111 -
+b1111001 ,
+bz +
+b0 *
+b0 )
+b1000000 (
+b1000000 '
+b1000000 &
+b1000000 %
+b1000000 $
+b1111001 #
+b1111001 "
+b1111111 !
+$end
+#10
+b100 )
+b100 .
+#15
+b101 2
+b10100 *
+b10100 1
+#20
+b1111001 '
+b1111001 8
+b1 ?
+b1010 I
+0<
+0;
+0:
+b0 E
+b0 D
+b1 C
+b0 B
+b101 )
+b101 .
+#30
+b100 )
+b100 .
+#45
+b10010 #
+b10010 4
+b101 J
+b101 G
+b110010 H
+b110000 "
+b110000 ,
+b110000 =
+b1101 2
+b10 3
+b110110 *
+b110110 1
+#50
+b10 '
+b10 8
+b110 J
+b110 ?
+b110 C
+b110010 I
+b101 )
+b101 .
+#60
+b100 )
+b100 .
+#75
+b100100 #
+b100100 4
+b10010 $
+b10010 5
+b10 J
+b10 G
+b101 F
+b11001 H
+b100100 "
+b100100 ,
+b100100 =
+b1010 2
+b1 3
+b101001 *
+b101001 1
+#80
+b0 '
+b0 8
+b10010 (
+b10010 9
+b1000 J
+b1000 ?
+b101 >
+b1000 C
+b101 B
+b11001 I
+b101 )
+b101 .
+#90
+b100 )
+b100 .
+#105
+b1000000 #
+b1000000 4
+b1000000 $
+b1000000 5
+b0 J
+b0 G
+b0 F
+b0 H
+b110 "
+b110 ,
+b110 =
+b1000 2
+b0 3
+b100000 *
+b100000 1
+#110
+b0 I
+b101 )
+b101 .
+#120
+b100 )
+b100 .
+#135
+b10010 #
+b10010 4
+b101 J
+b101 G
+b110010 H
+b110000 "
+b110000 ,
+b110000 =
+b1111 2
+b11 3
+b111111 *
+b111111 1
+#140
+b1111001 &
+b1111001 7
+b110000 '
+b110000 8
+b1 J
+b1 @
+b11 ?
+b1 D
+1;
+b11 C
+b110010 I
+b101 )
+b101 .
+#150
+b100 )
+b100 .
+#165
+b100100 #
+b100100 4
+b10010 $
+b10010 5
+b10 J
+b10 G
+b101 F
+b11001 H
+b100100 "
+b100100 ,
+b100100 =
+b1100 2
+b1 3
+b110001 *
+b110001 1
+#170
+b10 '
+b10 8
+b1000000 (
+b1000000 9
+b110 J
+b110 ?
+b0 >
+b110 C
+1:
+b0 B
+b11001 I
+0;
+b101 )
+b101 .
+#180
+b100 )
+b100 .
+#245
