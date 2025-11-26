@@ -1,212 +1,166 @@
-module pedagio (
-// Entradas de Controle e Dados
-input wire ready,                      // Sinal de confirmação de cobrança
-input wire reset,                      // Sinal de reset assíncrono
-input wire clk,                        // Clock para a lógica sequencial
-input wire [1:0] Eixos,                // Número de eixos (2 a 5+)
-input wire [3:0] Peso,                 // Peso total em toneladas (0 a 15t)
+module pedagio_terasic(
+    input  wire        CLOCK_50,
+    input  wire [9:0]  SW,
+    input  wire [3:0]  KEY,      
 
-// Saídas de Display (7 segmentos)
-output reg [6:0] S,                    // Saída do display da categoria
-output reg [6:0] S0,                   // Display das unidades do valor total
-output reg [6:0] S1,                   // Display das dezenas do valor total
-output reg [6:0] S2,                   // Display das centenas do valor total
-output reg [6:0] S3                    // Display dos milhares do valor total
+    output reg  [6:0]  HEX7,
+    output reg  [6:0]  HEX0,
+    output reg  [6:0]  HEX1,
+    output reg  [6:0]  HEX2,
+    output reg  [6:0]  HEX3,
+    output reg  [17:0] LEDR
 );
 
-// Sinais de classificação combinacional
-wire Categoria1, Categoria2, Categoria3, peso_maior_12t, peso_menor_igual_12t;
+    //=======================================================
+    // Entrada mapeada
+    //=======================================================
 
-// Determina limites de peso
-assign peso_maior_12t = (Peso > 4'd12);
-assign peso_menor_igual_12t = (Peso <= 4'd12);
+    wire [1:0] Eixos = SW[1:0];
+    wire [3:0] Peso  = SW[4:1];
+    wire       READY = SW[8];
+    wire       nRESET = KEY[0];   // Reset ativo-baixo
 
-// Lógica para determinar a Categoria 1 (peso <= 7t e eixos = 2)
-assign Categoria1 = (Peso <= 4'd7) & (Eixos == 2'b00);
+    //=======================================================
+    // Classificação
+    //=======================================================
+    
+    wire Categoria1 = (Peso <= 7)  && (Eixos == 2'b00);
+    wire Categoria2 = (Peso <= 12) && (Eixos == 2'b01);
+    wire Categoria3 = (Peso >  12) && (Eixos >= 2'b10);
 
-// Lógica para determinar a Categoria 2 (peso <= 12t e eixos = 3)
-assign Categoria2 = peso_menor_igual_12t & (Eixos == 2'b01);
+    reg [7:0] valor;
 
-// Lógica para determinar a Categoria 3 (peso > 12t e eixos >= 4)
-assign Categoria3 = peso_maior_12t & (Eixos >= 2'b10);
-
-// Decodificador de Categoria
-always @(*) begin
-    S = 7'b0110000;                    // Padrão 'E' (Erro)
-
-    if (Categoria1)
-        S = 7'b1001111;                // Exibe '1'
-    else if (Categoria2)
-        S = 7'b0010010;                // Exibe '2'
-    else if (Categoria3)
-        S = 7'b0000110;                // Exibe '3'
-end
-
-// Valor da categoria (lógica combinacional)
-reg [7:0] valor;
-
-always @(*) begin
-    valor = 8'd0;                      // Padrão para Erro
-    if (Categoria1)
-        valor = 8'd10;                 // Categoria 1: 10 unidades
-    else if (Categoria2)
-        valor = 8'd25;                 // Categoria 2: 25 unidades
-    else if (Categoria3)
-        valor = 8'd50;                 // Categoria 3: 50 unidades
-end
-
-// Registradores BCD para o valor total faturado
-reg antigoReady;                       // Armazena estado anterior do READY
-reg [3:0] d0;                          // Dígito das unidades
-reg [3:0] d1;                          // Dígito das dezenas
-reg [3:0] d2;                          // Dígito das centenas
-reg [3:0] d3;                          // Dígito dos milhares
-
-// Variáveis internas para cálculos BCD usando atribuições bloqueantes
-reg [3:0] temp_d0, temp_d1, temp_d2;
-reg carry_d0_to_d1, carry_d1_to_d2, carry_d2_to_d3;
-
-// Lógica sequencial (Acumulação do total)
-always @(posedge clk) begin
-
-    if (reset) begin                   // Reset assíncrono
-        d0 <= 0;
-        d1 <= 0;
-        d2 <= 0;
-        d3 <= 0;
-        antigoReady <= 0;
+    always @(*) begin
+        valor = 0;
+        if (Categoria1) valor = 10;
+        else if (Categoria2) valor = 25;
+        else if (Categoria3) valor = 50;
     end
-    else begin
-        
-        // Inicializa as variáveis temporárias
-        temp_d0 = d0;
-        temp_d1 = d1;
-        temp_d2 = d2;
-        carry_d0_to_d1 = 1'b0;
-        carry_d1_to_d2 = 1'b0;
-        carry_d2_to_d3 = 1'b0;
 
-        // Detecta a borda de subida do READY para realizar a cobrança
-        if (antigoReady == 0 && ready == 1) begin 
+    //=======================================================
+    // Acumulador BCD (d0..d3)
+    //=======================================================
 
-            case (valor)
+    reg [3:0] d0, d1, d2, d3;
+    reg ready_reg;
+    wire ready_rising = !ready_reg && READY;
 
-                // Soma 10 unidades
-                8'd10: begin
-                    temp_d1 = d1 + 1;                           // Adiciona 1 à dezena
-                    carry_d1_to_d2 = (temp_d1 > 9);             // Verifica carry para d2
-                    if (carry_d1_to_d2) temp_d1 = temp_d1 - 10;
-                end
+    reg [3:0] tmp_d0, tmp_d1, tmp_d2, tmp_d3;
+    reg c0, c1, c2;
 
-                // Soma 25 unidades
-                8'd25: begin
-                    // 1. Soma 5 às unidades (d0)
-                    temp_d0 = d0 + 5;
-                    carry_d0_to_d1 = (temp_d0 > 9);             // Verifica carry para d1
-                    if (carry_d0_to_d1) temp_d0 = temp_d0 - 10;
+    always @(posedge CLOCK_50 or negedge nRESET) begin
+        if (!nRESET) begin
+            d0 <= 0; d1 <= 0; d2 <= 0; d3 <= 0;
+            ready_reg <= 0;
+        end else begin
+            ready_reg <= READY;
 
-                    // 2. Soma 2 às dezenas (d1) + o carry gerado por d0
-                    temp_d1 = d1 + 2 + carry_d0_to_d1;
-                    carry_d1_to_d2 = (temp_d1 > 9);             // Verifica carry para d2
-                    if (carry_d1_to_d2) temp_d1 = temp_d1 - 10;
-                end
+            if (ready_rising) begin
+                tmp_d0 = d0;
+                tmp_d1 = d1;
+                tmp_d2 = d2;
+                tmp_d3 = d3;
+                c0 = 0; c1 = 0; c2 = 0;
 
-                // Soma 50 unidades
-                8'd50: begin
-                    temp_d1 = d1 + 5;                           // Adiciona 5 à dezena
-                    carry_d1_to_d2 = (temp_d1 > 9);             // Verifica carry para d2
-                    if (carry_d1_to_d2) temp_d1 = temp_d1 - 10;
-                end
-                
+                case (valor)
+                    10: begin
+                        tmp_d1 = d1 + 1;
+                        if (tmp_d1 > 9) begin tmp_d1 -= 10; c1 = 1; end
+                    end
+
+                    25: begin
+                        tmp_d0 = d0 + 5;
+                        if (tmp_d0 > 9) begin tmp_d0 -= 10; c0 = 1; end
+
+                        tmp_d1 = d1 + 2 + c0;
+                        if (tmp_d1 > 9) begin tmp_d1 -= 10; c1 = 1; end
+                    end
+
+                    50: begin
+                        tmp_d1 = d1 + 5;
+                        if (tmp_d1 > 9) begin tmp_d1 -= 10; c1 = 1; end
+                    end
+                endcase
+
+                tmp_d2 = d2 + c1;
+                if (tmp_d2 > 9) begin tmp_d2 -= 10; c2 = 1; end
+
+                tmp_d3 = d3 + c2;
+
+                d0 <= tmp_d0;
+                d1 <= tmp_d1;
+                d2 <= tmp_d2;
+                d3 <= tmp_d3;
+            end
+        end
+    end
+
+    //=======================================================
+    // Debug LEDs
+    //=======================================================
+    always @(*) begin
+        LEDR[0] = Eixos[0];
+        LEDR[1] = Eixos[1];
+        LEDR[2] = Peso[0];
+        LEDR[3] = Peso[1];
+        LEDR[4] = Peso[2];
+        LEDR[5] = Peso[3];
+        LEDR[8] = READY;
+        LEDR[17:9] = 0;
+    end
+
+    //=======================================================
+    // Categoria no HEX7
+    //=======================================================
+
+    localparam SEG_0 = 7'b1000000;
+    localparam SEG_1 = 7'b1111001;
+    localparam SEG_2 = 7'b0100100;
+    localparam SEG_3 = 7'b0110000;
+    localparam SEG_4 = 7'b0011001;
+    localparam SEG_5 = 7'b0010010;
+    localparam SEG_6 = 7'b0000010;
+    localparam SEG_7 = 7'b1111000;
+    localparam SEG_8 = 7'b0000000;
+    localparam SEG_9 = 7'b0010000;
+    localparam SEG_E = 7'b0110000;
+
+    always @(*) begin
+        if      (Categoria1) HEX7 = SEG_1;
+        else if (Categoria2) HEX7 = SEG_2;
+        else if (Categoria3) HEX7 = SEG_3;
+        else HEX7 = SEG_E;
+    end
+
+    //=======================================================
+    // HEX0–HEX3 BCD
+    //=======================================================
+
+    task decode;
+        input [3:0] d;
+        output reg [6:0] h;
+        begin
+            case (d)
+                0: h = SEG_0;
+                1: h = SEG_1;
+                2: h = SEG_2;
+                3: h = SEG_3;
+                4: h = SEG_4;
+                5: h = SEG_5;
+                6: h = SEG_6;
+                7: h = SEG_7;
+                8: h = SEG_8;
+                9: h = SEG_9;
+                default: h = SEG_E;
             endcase
-            
-            // Propagação de Carries D2 e D3
-            
-            // Adiciona carry c1 (se houver) ao d2
-            temp_d2 = d2 + carry_d1_to_d2;
-            carry_d2_to_d3 = (temp_d2 > 9);                     // Verifica carry para d3
-            if (carry_d2_to_d3) temp_d2 = temp_d2 - 10;
+        end
+    endtask
 
-            // Aplica as atualizações de estado (Não Bloqueantes)
-            
-            d0 <= temp_d0;
-            d1 <= temp_d1;
-            d2 <= temp_d2;
-            
-            // Atualiza d3 (milhares) apenas se houver carry de d2
-            if (carry_d2_to_d3)
-                d3 <= d3 + 1;
-            
-        end 
-
-        // Atualiza o valor anterior do READY para detecção de borda no próximo ciclo
-        antigoReady <= ready;
-
+    always @(*) begin
+        decode(d0, HEX0);
+        decode(d1, HEX1);
+        decode(d2, HEX2);
+        decode(d3, HEX3);
     end
-
-end
-
-// Decodificadores BCD para 7 segmentos (d0: Unidades)
-always @(*) begin
-    case(d0)
-    4'd0: S0 = 7'b1000000;
-    4'd1: S0 = 7'b1111001;
-    4'd2: S0 = 7'b0100100;
-    4'd3: S0 = 7'b0110000;
-    4'd4: S0 = 7'b0011001;
-    4'd5: S0 = 7'b0010010;
-    4'd6: S0 = 7'b0000010;
-    4'd7: S0 = 7'b1111000;
-    4'd8: S0 = 7'b0000000;
-    4'd9: S0 = 7'b0010000;
-    default: S0 = 7'b0110000; // Caso indefinido
-    endcase
-
-// Decodificadores BCD para 7 segmentos (d1: Dezenas)
-    case(d1)
-    4'd0: S1 = 7'b1000000;
-    4'd1: S1 = 7'b1111001;
-    4'd2: S1 = 7'b0100100;
-    4'd3: S1 = 7'b0110000;
-    4'd4: S1 = 7'b0011001;
-    4'd5: S1 = 7'b0010010;
-    4'd6: S1 = 7'b0000010;
-    4'd7: S1 = 7'b1111000;
-    4'd8: S1 = 7'b0000000;
-    4'd9: S1 = 7'b0010000;
-    default: S1 = 7'b0110000;
-    endcase
-
-// Decodificadores BCD para 7 segmentos (d2: Centenas)
-    case(d2)
-    4'd0: S2 = 7'b1000000;
-    4'd1: S2 = 7'b1111001;
-    4'd2: S2 = 7'b0100100;
-    4'd3: S2 = 7'b0110000;
-    4'd4: S2 = 7'b0011001;
-    4'd5: S2 = 7'b0010010;
-    4'd6: S2 = 7'b0000010;
-    4'd7: S2 = 7'b1111000;
-    4'd8: S2 = 7'b0000000;
-    4'd9: S2 = 7'b0010000;
-    default: S2 = 7'b0110000;
-    endcase
-
-// Decodificadores BCD para 7 segmentos (d3: Milhares)
-    case(d3)
-    4'd0: S3 = 7'b1000000;
-    4'd1: S3 = 7'b1111001;
-    4'd2: S3 = 7'b0100100;
-    4'd3: S3 = 7'b0110000;
-    4'd4: S3 = 7'b0011001;
-    4'd5: S3 = 7'b0010010;
-    4'd6: S3 = 7'b0000010;
-    4'd7: S3 = 7'b1111000;
-    4'd8: S3 = 7'b0000000;
-    4'd9: S3 = 7'b0010000;
-    default: S3 = 7'b0110000;
-    endcase
-
-end
 
 endmodule
